@@ -1,4 +1,4 @@
-# GeoParquet
+# GeoParquet [Work in Progress]
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://evetion.github.io/GeoParquet.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://evetion.github.io/GeoParquet.jl/dev)
