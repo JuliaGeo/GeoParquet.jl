@@ -3,11 +3,15 @@ uuid = "e99870d8-ce00-4fdd-aeee-e09192881159"
 authors = ["Maarten Pronk <git@evetion.nl> and contributors"]
 version = "0.1.0"
 
+[deps]
+Parquet2 = "98572fba-bba0-415d-956f-fa77e587d26d"
+
 [compat]
 julia = "1.6"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 
 [targets]
-test = ["Test"]
+test = ["Test", "Downloads"]
