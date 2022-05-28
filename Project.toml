@@ -1,17 +1,28 @@
 name = "GeoParquet"
 uuid = "e99870d8-ce00-4fdd-aeee-e09192881159"
-authors = ["Maarten Pronk <git@evetion.nl> and contributors"]
+authors = ["Maarten Pronk <git@evetion.nl>", "Julia Computing and contributors"]
 version = "0.1.0"
 
 [deps]
+GeoFormatTypes = "68eda718-8dee-11e9-39e7-89f7f65f511f"
+GeoInterface = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 Parquet2 = "98572fba-bba0-415d-956f-fa77e587d26d"
+StructTypes = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
 
 [compat]
+GeoFormatTypes = "0.4"
+GeoInterface = "1"
+JSON3 = "1.9"
+Parquet2 = "0.1.7"
+StructTypes = "1.8"
 julia = "1.6"
 
 [extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+ArchGDAL = "c9ce4bd3-c3d5-55b8-8973-c0e20141b8c3"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Downloads"]
+test = ["Test", "Downloads", "ArchGDAL", "DataFrames"]

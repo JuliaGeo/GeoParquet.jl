@@ -6,3 +6,5 @@
 [![Coverage](https://codecov.io/gh/evetion/GeoParquet.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/evetion/GeoParquet.jl)
 
 Adding *geospatial data* to Parquet. Follows the [GeoParquet](https://github.com/opengeospatial/geoparquet) spec.
+
+We thank Julia Computing for supporting contributions to this package.
