@@ -11,7 +11,7 @@ Parquet2 = "98572fba-bba0-415d-956f-fa77e587d26d"
 StructTypes = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
 
 [compat]
-GeoFormatTypes = "0.4"
+GeoFormatTypes = "0.4.1"
 GeoInterface = "1"
 JSON3 = "1.9"
 Parquet2 = "0.1.7"
