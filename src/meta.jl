@@ -55,8 +55,6 @@ StructTypes.StructType(::Type{GFT.WellKnownText2{GFT.CRS}}) = StructTypes.String
 StructTypes.StructType(::Type{GFT.ProjJSON}) = StructTypes.DictType()
 StructTypes.construct(::Type{GFT.ProjJSON}, x::Dict; kw...) = GFT.ProjJSON(x)
 
-# Base.keys(p::GFT.ProjJSON) = keys(p.val)
-# Base.values(p::GFT.ProjJSON) = values(p.val)
 Base.pairs(p::GFT.ProjJSON) = pairs(p.val)
 GFT.ProjJSON(input::Dict{Symbol,<:Any}) = GFT.ProjJSON(todict(input))
 
