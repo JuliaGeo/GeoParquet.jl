@@ -16,7 +16,6 @@ for url in (
 end
 
 @testset "GeoParquet.jl" begin
-    # Write your tests here.
 
     @testset "Reading" begin
         fn = "data/example.parquet"
@@ -52,5 +51,18 @@ end
         fn = "data/example.parquet"
         df = GeoParquet.read(fn)
         GeoParquet.write("data/example_copy.parquet", df, (:geometry,))
+    end
+
+    @testset "Parquet2 FilePath" begin
+        df = DataFrame(a=UInt16.(1:10), b=Int8.(1:10))
+        Parquet2.writefile("data/test.parquet", df)
+        mv("data/test.parquet", "data/test2.parquet", force=true)
+        ds = Parquet2.Dataset("data/test2.parquet")
+        df = DataFrame(ds)
+        @test df.a[1] == 1
+        @test df.b[end] == 10
+        @test df.a[1] isa UInt16
+        @test df.a[1] isa Int8
+        rm("data/test2.parquet")
     end
 end

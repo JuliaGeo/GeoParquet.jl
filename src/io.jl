@@ -20,8 +20,8 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
         columns[String(column)] = mc
     end
 
-    md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot(columns=columns)))
-    Parquet2.writefile(ofn, df; metadata=md, compression_codec=:zstd, kwargs...)
+    md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot(columns=columns, primary_column=String(geocolumns[1]))))
+    Parquet2.writefile(ofn, df, metadata=md, compression_codec=:zstd, kwargs...)
     ofn
 end
 
