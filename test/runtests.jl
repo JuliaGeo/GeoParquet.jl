@@ -62,7 +62,7 @@ end
         @test df.a[1] == 1
         @test df.b[end] == 10
         @test df.a[1] isa UInt16
-        @test df.a[1] isa Int8
+        @test df.b[end] isa Int8
         rm("data/test2.parquet")
     end
 end
