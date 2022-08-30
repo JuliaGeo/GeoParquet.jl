@@ -1,7 +1,7 @@
 name = "GeoParquet"
 uuid = "e99870d8-ce00-4fdd-aeee-e09192881159"
 authors = ["Maarten Pronk <git@evetion.nl>", "Julia Computing and contributors"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"

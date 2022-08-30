@@ -1,5 +1,3 @@
-GI.isgeometry(geom::GFT.WellKnownBinary{GFT.Geom,Vector{UInt8}})::Bool = true
-
 const geowkb = Dict{DataType,String}(
     GI.PointTrait => "Point",
     GI.LineStringTrait => "LineString",
