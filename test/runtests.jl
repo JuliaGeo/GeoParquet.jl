@@ -66,10 +66,10 @@ end
         mv("data/test.parquet", "data/test2.parquet", force=true)
         ds = Parquet2.Dataset("data/test2.parquet")
         df = DataFrame(ds)
+        close(ds)
         @test df.a[1] == 1
         @test df.b[end] == 10
         @test df.a[1] isa UInt16
         @test df.b[end] isa Int8
-        rm("data/test2.parquet")
     end
 end
