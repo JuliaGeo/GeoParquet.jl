@@ -28,16 +28,9 @@ julia> df = GP.read(fn)
    5 │ 326625791  North America  United States of America  USA           1.856e7  WellKnownBinary{Geom, Vector{UIn…
 ```
 
-Writing requires Table like input with geometry columns that are `WellKnownBinary` from GeoFormatTypes.
+Writing requires Table like input with geometry columns that are `WellKnownBinary` from [GeoFormatTypes.jl](https://github.com/JuliaGeo/GeoFormatTypes.jl/), or geometries that support [GeoInterface.jl](https://github.com/JuliaGeo/GeoInterface.jl/).
 
 ```julia
 julia> GeoParquet.write("test.parquet", df, (:geometry,))
 test.parquet
 ```
-
-## Features not yet implemented
-- [ ] Strict schema and version support
-- [ ] GeoInterface FeatureCollection implementation
-- [ ] Better access to metadata in `read`
-- [ ] Lazy read option
-- [ ] Easier support for ProjJSON
