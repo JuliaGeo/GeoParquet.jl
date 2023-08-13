@@ -1,7 +1,7 @@
 """
     write(ofn, t, columns=(:geom), crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
 
-Write a dataframe with a geometry column to a Parquet file. Keyword arguments are passed to Parquet2 writefile method.
+Write a dataframe with a geometry column to a Parquet file. Returns `ofn` on succes. Keyword arguments are passed to Parquet2 writefile method.
 The geometry column should be a `Vector{GeoFormat.WellKnownBinary}` or its elements should support GeoInterface.
 You can construct one with WellKnownGeometry for geometries that support GeoInterface.
 """
@@ -35,9 +35,9 @@ end
 
 
 """
-    read(fn; kwargs...)
+    read(fn; kwargs...)::DataFrame
 
-Read a GeoParquet file. Kwargs are passed to the Parquet2.Dataset constructor.
+Read a GeoParquet file as DataFrame. Kwargs are passed to the Parquet2.Dataset constructor.
 """
 function read(fn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath,Parquet2.FileManager}; kwargs...)
     ds = Parquet2.Dataset(fn, kwargs...)
