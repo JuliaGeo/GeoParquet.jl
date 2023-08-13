@@ -41,5 +41,3 @@ test.parquet
 - [ ] Better access to metadata in `read`
 - [ ] Lazy read option
 - [ ] Easier support for ProjJSON
-
-We thank Julia Computing for supporting contributions to this package.

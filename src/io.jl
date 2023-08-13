@@ -2,18 +2,26 @@
     write(ofn, t, columns=(:geom), crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
 
 Write a dataframe with a geometry column to a Parquet file. Keyword arguments are passed to Parquet2 writefile method.
-The geometry column should be a `Vector{GeoFormat.WellKnownBinary}`.
+The geometry column should be a `Vector{GeoFormat.WellKnownBinary}` or its elements should support GeoInterface.
 You can construct one with WellKnownGeometry for geometries that support GeoInterface.
 """
 function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, df, geocolumns=(:geom,), crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
 
+    Tables.istable(df) || throw(ArgumentError("`df` must be a table"))
+
     columns = Dict{String,Any}()
     tcols = Tables.columns(df)
+
+    # For on the fly conversion to WKB
+    ndf = DataFrame(df; copycols=false)
 
     for column in geocolumns
         column in Tables.columnnames(df) || error("Geometry column $column not found in table")
         data = Tables.getcolumn(tcols, column)
         GI.isgeometry(data[1]) || error("Geometry in $column must support the GeoInterface")
+        if !(data isa Vector{GFT.WellKnownBinary}) || !(data isa Vector{Vector{UInt8}})
+            ndf[!, column] = _getwkb.(data)
+        end
         types = unique(typeof.(GI.geomtrait.(data)))
         gtypes = getindex.(Ref(geowkb), types)
         mc = MetaColumn(geometry_type=gtypes, bbox=bbox, crs=crs)
@@ -21,7 +29,7 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
     end
 
     md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot(columns=columns, primary_column=String(geocolumns[1]))))
-    Parquet2.writefile(ofn, df, metadata=md, compression_codec=:zstd, kwargs...)
+    Parquet2.writefile(ofn, ndf, metadata=md, compression_codec=:zstd, kwargs...)
     ofn
 end
 

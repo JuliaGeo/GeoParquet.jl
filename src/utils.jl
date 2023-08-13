@@ -23,3 +23,7 @@ function todict(obj::Dict{Symbol,Any})
     end
     return dict
 end
+
+_getwkb(x) = WellKnownGeometry.getwkb(x)
+_getwkb(x::GFT.WellKnownBinary) = x
+_getwkb(x::Vector{UInt8}) = GFT.WellKnownBinary(GFT.Geom(), x)

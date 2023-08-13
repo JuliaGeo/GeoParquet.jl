@@ -48,6 +48,13 @@ end
         df = GeoParquet.read(fn)
         df.test[1] == "test"
 
+        # Transparently convert columns to WKB
+        fn = "data/writec.parquet"
+        df = DataFrame(test="test", value=rand(2), geom=geom)
+        GeoParquet.write(fn, df)
+        ndf = GeoParquet.read(fn)
+        df.geom != ndf.geom  # original is not mutated
+
         fn = "data/example.parquet"
         df = GeoParquet.read(fn)
         GeoParquet.write("data/example_copy.parquet", df, (:geometry,))
