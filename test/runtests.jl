@@ -8,7 +8,7 @@ using JSON3
 import GeoFormatTypes as GFT
 
 for url in (
-    "https://github.com/opengeospatial/geoparquet/raw/v0.4.0/examples/example.parquet",
+    "https://github.com/opengeospatial/geoparquet/raw/v1.0.0/examples/example.parquet",
     "https://storage.googleapis.com/open-geodata/linz-examples/nz-buildings-outlines.parquet"
 )
     fn = joinpath("data", basename(url))
@@ -21,8 +21,10 @@ end
         fn = "data/example.parquet"
         ds = Parquet2.Dataset(fn)
         meta = GeoParquet.geometadata(ds)
-        @test meta.version == "0.4.0"
+        @test meta.version == "1.0.0"
+        @test meta.version == "1.0.0"
         @test meta.columns["geometry"].bbox[end] ≈ 83.6451
+        @test meta.columns["geometry"].geometry_types == ["Polygon", "MultiPolygon"]
 
         ds = Parquet2.Dataset("data/nz-buildings-outlines.parquet")
         # this file is still at 0.1.0, using "schema_version", breaking our code

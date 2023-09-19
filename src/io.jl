@@ -24,7 +24,7 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
         end
         types = unique(typeof.(GI.geomtrait.(data)))
         gtypes = getindex.(Ref(geowkb), types)
-        mc = MetaColumn(geometry_type=gtypes, bbox=bbox, crs=crs)
+        mc = MetaColumn(geometry_types=gtypes, bbox=bbox, crs=crs)
         columns[String(column)] = mc
     end
 
