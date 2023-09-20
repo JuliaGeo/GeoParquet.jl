@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/JuliaGeo/GeoParquet.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/JuliaGeo/GeoParquet.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/JuliaGeo/GeoParquet.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/JuliaGeo/GeoParquet.jl)
 
-Adding *geospatial data* to Parquet. Follows the [GeoParquet](https://github.com/opengeospatial/geoparquet) `v0.4` spec.
+Adding *geospatial data* to Parquet. Follows the [GeoParquet](https://github.com/opengeospatial/geoparquet) `v1.0` spec.
 
 ## Usage
 
