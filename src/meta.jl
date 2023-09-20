@@ -46,6 +46,7 @@ end
 # Backwards compatible with 0.4, which had `geometry_type`
 MetaColumn(encoding, geometry_types::Nothing, geometry_type::String, crs, orientation, edges, bbox, epoch) = MetaColumn(encoding, [geometry_type], geometry_type, crs, orientation, edges, bbox, epoch)
 MetaColumn(encoding, geometry_types::Nothing, geometry_type::Vector{String}, crs, orientation, edges, bbox, epoch) = MetaColumn(encoding, geometry_type, geometry_type, crs, orientation, edges, bbox, epoch)
+MetaColumn(encoding, geometry_types::Vector{String}, geometry_type::Nothing, crs, orientation, edges, bbox, epoch) = MetaColumn(encoding, geometry_types, geometry_types, crs, orientation, edges, bbox, epoch)
 
 Base.@kwdef struct MetaRoot
     version::String = "1.0.0"
