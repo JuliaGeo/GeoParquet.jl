@@ -33,17 +33,21 @@ const projjson = Dict{String,Any}(
     )
 )
 
-Base.@kwdef mutable struct MetaColumn
+Base.@kwdef struct MetaColumn
     encoding::String = "WKB"
     geometry_types::Vector{String} = ["Point"]
+    geometry_type::Union{String,Vector{String}} = ["Point"]
     crs::Union{Nothing,GFT.ProjJSON} = GFT.ProjJSON(projjson)
     orientation::Union{Nothing,String} = nothing
     edges::Union{Nothing,String} = "planar"
     bbox::Union{Nothing,Vector{Float64}} = [-180.0, -90.0, 180.0, 90.0]  # minx, miny, maxx, maxy
     epoch::Union{Nothing,Float64} = nothing
 end
+# Backwards compatible with 0.4, which had `geometry_type`
+MetaColumn(encoding, geometry_types::Nothing, geometry_type::String, crs, orientation, edges, bbox, epoch) = MetaColumn(encoding, [geometry_type], geometry_type, crs, orientation, edges, bbox, epoch)
+MetaColumn(encoding, geometry_types::Nothing, geometry_type::Vector{String}, crs, orientation, edges, bbox, epoch) = MetaColumn(encoding, geometry_type, geometry_type, crs, orientation, edges, bbox, epoch)
 
-Base.@kwdef mutable struct MetaRoot
+Base.@kwdef struct MetaRoot
     version::String = "1.0.0"
     primary_column::String = "geometry"
     columns::Dict{String,MetaColumn} = Dict("geometry" => MetaColumn())
