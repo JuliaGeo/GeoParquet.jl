@@ -7,7 +7,7 @@ You can construct one with WellKnownGeometry for geometries that support GeoInte
 """
 function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, df, geocolumns=(:geom,), crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
 
-    Tables.istable(df) || throw(ArgumentError("`df` must be a table"))
+    # Tables.istable(df) || throw(ArgumentError("`df` must be a table"))
 
     columns = Dict{String,Any}()
     tcols = Tables.columns(df)
@@ -16,10 +16,11 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
     ndf = DataFrame(df; copycols=false)
 
     for column in geocolumns
-        column in Tables.columnnames(df) || error("Geometry column $column not found in table")
+        column in Tables.columnnames(tcols) || error("Geometry column $column not found in table")
         data = Tables.getcolumn(tcols, column)
-        GI.isgeometry(data[1]) || error("Geometry in $column must support the GeoInterface")
-        if !(data isa Vector{GFT.WellKnownBinary}) || !(data isa Vector{Vector{UInt8}})
+        GI.isgeometry(first(data)) || error("Geometry in $column must support the GeoInterface")
+        T = eltype(data)
+        if !(T <: GFT.WellKnownBinary) || !(T <: AbstractVector{UInt8})
             ndf[!, column] = _getwkb.(data)
         end
         types = unique(typeof.(GI.geomtrait.(data)))
@@ -29,7 +30,10 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
     end
 
     md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot(columns=columns, primary_column=String(geocolumns[1]))))
-    Parquet2.writefile(ofn, ndf, metadata=md, compression_codec=:zstd, kwargs...)
+
+    kw = Dict{Symbol,Any}(kwargs)
+    get!(kw, :compression_codec, :zstd)
+    Parquet2.writefile(ofn, ndf; metadata=md, pairs(kw)...)
     ofn
 end
 
