@@ -60,6 +60,10 @@ end
         fn = "data/example.parquet"
         df = GeoParquet.read(fn)
         GeoParquet.write("data/example_copy.parquet", df, (:geometry,))
+
+        fn = "data/example.parquet"
+        df = GeoParquet.read(fn)
+        GeoParquet.write("data/example_copy.parquet", df, (:geometry,), compression_codec=:snappy, npages=2)
     end
 
     @testset "Parquet2 FilePath" begin
