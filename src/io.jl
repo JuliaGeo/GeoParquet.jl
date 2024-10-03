@@ -48,12 +48,11 @@ function read(fn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath,Parqu
     is_valid(ds) || error("Not a valid GeoParquet file")
     meta = geometadata(ds)
     df = DataFrame(ds; copycols=false)
-    geocolumns = Symbol.(keys(meta.columns))
-    for column in geocolumns
+    for column in keys(meta.columns)
         df[!, column] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, column])
     end
     # set GeoInterface metadata
-    metadata!(df, "GEOINTERFACE:geometrycolumns", geocolumns)
+    metadata!(df, "GEOINTERFACE:geometrycolumns", Tuple(Symbol.(keys(meta.columns))))
     crs = meta.columns[meta.primary_column].crs
     if !isnothing(crs)
         metadata!(df, "GEOINTERFACE:crs", crs)
