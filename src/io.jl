@@ -51,5 +51,9 @@ function read(fn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath,Parqu
     for column in keys(meta.columns)
         df[!, column] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, column])
     end
+    mc = meta.columns[meta.primary_column]
+    if !isnothing(mc.crs)
+        metadata!(df, "GEOINTERFACE:crs", mc.crs)
+    end
     df
 end
