@@ -37,6 +37,9 @@ end
         df = GeoParquet.read(fn)
         @test nrow(df) === 5
         @test df.geometry[1] isa GFT.WellKnownBinary
+        # GeoInterface metadata
+        @test metadata(df, "GEOINTERFACE:geometrycolumns") == (:geometry,)
+        @test metadata(df, "GEOINTERFACE:crs") isa GFT.ProjJSON
 
         @test_throws Exception GeoParquet.read(fn, columns=(:geom,))
     end
