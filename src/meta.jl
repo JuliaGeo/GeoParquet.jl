@@ -64,6 +64,7 @@ StructTypes.omitempties(::Type{MetaColumn}) = true
 Base.pairs(p::GFT.ProjJSON) = pairs(p.val)
 GFT.ProjJSON(input::Dict{Symbol,<:Any}) = GFT.ProjJSON(todict(input))
 
-Parquet2.default_determine_type(::Vector{GFT.WellKnownBinary{GFT.Geom,Vector{UInt8}}}) = Parquet2.ParqByteArray()
+Parquet2.parqtype(::Type{GFT.WellKnownBinary{GFT.Geom,Vector{UInt8}}}) = Parquet2.ParqByteArray()
+
 Base.length(A::GFT.WellKnownBinary) = Base.length(A.val)
 Base.write(io::IOBuffer, A::GFT.WellKnownBinary{GFT.Geom,Vector{UInt8}}) = Base.write(io, A.val)
