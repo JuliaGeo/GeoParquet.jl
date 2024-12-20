@@ -37,6 +37,33 @@ end
         df = GeoParquet.read(fn)
         @test nrow(df) === 5
         @test df.geometry[1] isa GFT.WellKnownBinary
+        # GeoInterface metadata
+        @test metadata(df, "GEOINTERFACE:geometrycolumns") == (:geometry,)
+        @test metadata(df, "GEOINTERFACE:crs") isa GFT.ProjJSON
+
+        @test_throws Exception GeoParquet.read(fn, columns=(:geom,))
+    end
+    @testset "Reading QuackIO" begin
+        using QuackIO
+        fn = "data/example.parquet"
+        ds = Parquet2.Dataset(fn)
+        meta = GeoParquet.geometadata(ds)
+        @test meta.version == "1.0.0"
+        @test meta.version == "1.0.0"
+        @test meta.columns["geometry"].bbox[end] ≈ 83.6451
+        @test meta.columns["geometry"].geometry_types == ["Polygon", "MultiPolygon"]
+
+        ds = Parquet2.Dataset("data/nz-buildings-outlines.parquet")
+        # this file is still at 0.1.0, using "schema_version", breaking our code
+        # @info Parquet2.metadata(ds)["geo"]
+        # meta = GeoParquet.geometadata(ds)
+        # @info meta
+        # @test meta.version == "0.3.0"
+        # @test meta.columns["geometry"].bbox[end] ≈ 6190596.9
+
+        df = GeoParquet.read(fn)
+        @test nrow(df) === 5
+        @test df.geometry[1] isa GFT.WellKnownBinary
 
         @test_throws Exception GeoParquet.read(fn, columns=(:geom,))
     end
