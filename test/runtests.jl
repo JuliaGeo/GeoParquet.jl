@@ -46,14 +46,14 @@ end
         wkb = ArchGDAL.toWKB.(geom)
         df = DataFrame(test="test", value=rand(2), geometry=wkb)
         fn = "data/write.parquet"
-        GeoParquet.write(fn, df, (:geometry,))
+        GeoParquet.write(fn, df)
         df = GeoParquet.read(fn)
         df.test[1] == "test"
 
         # Transparently convert columns to WKB
         fn = "data/writec.parquet"
         df = DataFrame(test="test", value=rand(2), geom=geom)
-        GeoParquet.write(fn, df)
+        GeoParquet.write(fn, df, (:geom,))
         ndf = GeoParquet.read(fn)
         df.geom != ndf.geom  # original is not mutated
 
