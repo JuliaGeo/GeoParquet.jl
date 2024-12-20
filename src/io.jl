@@ -54,6 +54,12 @@ function read(::Parquet2Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.
     for column in keys(meta.columns)
         df[!, column] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, column])
     end
+    # set GeoInterface metadata
+    metadata!(df, "GEOINTERFACE:geometrycolumns", Tuple(Symbol.(keys(meta.columns))))
+    crs = meta.columns[meta.primary_column].crs
+    if !isnothing(crs)
+        metadata!(df, "GEOINTERFACE:crs", crs)
+    end
     df
 end
 
