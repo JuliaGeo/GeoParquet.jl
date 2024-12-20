@@ -2,7 +2,7 @@ function is_valid(ds::Parquet2.Dataset)
     "geo" in keys(Parquet2.metadata(ds))
 end
 
-function geometadata(ds)
+function geometadata(ds::Parquet2.Dataset)
     json = Parquet2.metadata(ds)["geo"]
     JSON3.read(json, MetaRoot)
 end

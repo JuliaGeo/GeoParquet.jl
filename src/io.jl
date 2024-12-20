@@ -1,3 +1,7 @@
+abstract type Driver end
+struct Parquet2Driver <: Driver end
+struct QuackIODriver <: Driver end
+
 """
     write(ofn, t, columns=(:geom), crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
 
@@ -23,7 +27,7 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
         if !(T <: GFT.WellKnownBinary) || !(T <: AbstractVector{UInt8})
             ndf[!, column] = _getwkb.(data)
         end
-        types = unique(typeof.(GI.geomtrait.(data)))
+        types = typeof.(unique(GI.geomtrait.(data)))
         gtypes = getindex.(Ref(geowkb), types)
         mc = MetaColumn(geometry_types=gtypes, bbox=bbox, crs=crs)
         columns[String(column)] = mc
@@ -37,13 +41,12 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
     ofn
 end
 
-
 """
     read(fn; kwargs...)::DataFrame
 
 Read a GeoParquet file as DataFrame. Kwargs are passed to the Parquet2.Dataset constructor.
 """
-function read(fn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath,Parquet2.FileManager}; kwargs...)
+function read(::Parquet2Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath,Parquet2.FileManager}; kwargs...)
     ds = Parquet2.Dataset(fn, kwargs...)
     is_valid(ds) || error("Not a valid GeoParquet file")
     meta = geometadata(ds)
@@ -52,4 +55,10 @@ function read(fn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath,Parqu
         df[!, column] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, column])
     end
     df
+end
+
+function read(fn::AbstractString; driver=nothing, kwargs...)
+    ext = Base.get_extension(GeoParquet, :QuackIOExt)
+    driver = isnothing(ext) ? Parquet2Driver() : QuackIODriver()
+    read(driver, fn; kwargs...)
 end
