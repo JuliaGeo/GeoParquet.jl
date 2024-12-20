@@ -9,7 +9,7 @@ Write a dataframe with a geometry column to a Parquet file. Returns `ofn` on suc
 The geometry column should be a `Vector{GeoFormat.WellKnownBinary}` or its elements should support GeoInterface.
 You can construct one with WellKnownGeometry for geometries that support GeoInterface.
 """
-function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, df, geocolumns=(:geom,), crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
+function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, df, geocolumns=GI.geometrycolumns(df), crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
 
     # Tables.istable(df) || throw(ArgumentError("`df` must be a table"))
 
