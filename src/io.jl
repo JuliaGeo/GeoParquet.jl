@@ -19,18 +19,16 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
             Base.depwarn("The `geocolumns` positional argument to `GeoParquet.write` is deprecated, please use the `geometrycolumn` keyword argument instead.", :var"GeoParquet.write")
             geometrycolumn = geocolumns
         end
-    else
-        if isnothing(geocolumns)
-            error("""
-                It looks like you invoked `GeoParquet.write` with three arguments, but also
-                provided a `geometrycolumns` keyword argument.
+    elseif !isnothing(geocolumns)
+        error("""
+            It looks like you invoked `GeoParquet.write` with three arguments, but also
+            provided a `geometrycolumns` keyword argument.
 
-                The third positional argument in this method, `geocolumns`, is deprecated.  
-                Please pass geometry column information as a Symbol or Tuple of Symbols to 
-                the `geometrycolumn` keyword argument instead, such that you only have two
-                positional arguments as input.
-            """)
-        end
+            The third positional argument in this method, `geocolumns`, is deprecated.  
+            Please pass geometry column information as a Symbol or Tuple of Symbols to 
+            the `geometrycolumn` keyword argument instead, such that you only have two
+            positional arguments as input.
+        """)
     end
         
     # Tables.istable(df) || throw(ArgumentError("`df` must be a table"))
@@ -61,12 +59,12 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
         columns[String(column)] = mc
     end
 
-    md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot(columns=columns, primary_column=String(geocolumns[1]))))
+    md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot(columns=columns, primary_column=String(first(geometrycolumn))))
 
     kw = Dict{Symbol,Any}(kwargs)
     get!(kw, :compression_codec, :zstd)
     Parquet2.writefile(ofn, ndf; metadata=md, pairs(kw)...)
-    ofn
+    return ofn
 end
 
 """
