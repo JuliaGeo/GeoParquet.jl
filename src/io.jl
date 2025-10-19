@@ -3,14 +3,34 @@ struct Parquet2Driver <: Driver end
 struct QuackIODriver <: Driver end
 
 """
-    write(ofn, t, columns=(:geom), crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
+    write(ofn, t; geometrycolumn::Symbol, crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
 
 Write a dataframe with a geometry column to a Parquet file. Returns `ofn` on succes. Keyword arguments are passed to Parquet2 writefile method.
 The geometry column should be a `Vector{GeoFormat.WellKnownBinary}` or its elements should support GeoInterface.
 You can construct one with WellKnownGeometry for geometries that support GeoInterface.
 """
-function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, df, geocolumns=GI.geometrycolumns(df), crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; kwargs...)
+function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, df, geocolumns=nothing, crs::Union{GFT.ProjJSON,Nothing}=nothing, bbox::Union{Nothing,Vector{Float64}}=nothing; geometrycolumn = nothing, kwargs...)
 
+    if isnothing(geometrycolumn)
+        if isnothing(geocolumns)
+            # the happy path, everything is fine
+            geometrycolumn = GI.geometrycolumns(df)
+        else # the user has provided something to geocolumns
+            Base.depwarn("The `geocolumns` positional argument to `GeoParquet.write` is deprecated, please use the `geometrycolumn` keyword argument instead.", :var"GeoParquet.write")
+            geometrycolumn = geocolumns
+        end
+    elseif !isnothing(geocolumns)
+        error("""
+            It looks like you invoked `GeoParquet.write` with three arguments, but also
+            provided a `geometrycolumns` keyword argument.
+
+            The third positional argument in this method, `geocolumns`, is deprecated.  
+            Please pass geometry column information as a Symbol or Tuple of Symbols to 
+            the `geometrycolumn` keyword argument instead, such that you only have two
+            positional arguments as input.
+        """)
+    end
+        
     # Tables.istable(df) || throw(ArgumentError("`df` must be a table"))
 
     columns = Dict{String,Any}()
@@ -19,7 +39,13 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
     # For on the fly conversion to WKB
     ndf = DataFrame(df; copycols=false)
 
-    for column in geocolumns
+    geometrycolumns = if geometrycolumn isa Tuple || geometrycolumn isa Vector
+        geometrycolumn
+    else
+        (geometrycolumn,)
+    end
+
+    for column in geometrycolumns
         column in Tables.columnnames(tcols) || error("Geometry column $column not found in table")
         data = Tables.getcolumn(tcols, column)
         GI.isgeometry(first(data)) || error("Geometry in $column must support the GeoInterface")
@@ -28,17 +54,17 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
             ndf[!, column] = _getwkb.(data)
         end
         types = typeof.(unique(GI.geomtrait.(data)))
-        gtypes = getindex.(Ref(geowkb), types)
+        gtypes = getindex.((geowkb,), types)
         mc = MetaColumn(geometry_types=gtypes, bbox=bbox, crs=crs)
         columns[String(column)] = mc
     end
 
-    md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot(columns=columns, primary_column=String(geocolumns[1]))))
+    md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot(columns=columns, primary_column=String(first(geometrycolumn)))))
 
     kw = Dict{Symbol,Any}(kwargs)
     get!(kw, :compression_codec, :zstd)
     Parquet2.writefile(ofn, ndf; metadata=md, pairs(kw)...)
-    ofn
+    return ofn
 end
 
 """
