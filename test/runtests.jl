@@ -7,18 +7,23 @@ using ArchGDAL
 using JSON3
 import GeoFormatTypes as GFT
 
-for url in (
-    "https://github.com/opengeospatial/geoparquet/raw/v1.0.0/examples/example.parquet",
-    "https://storage.googleapis.com/open-geodata/linz-examples/nz-buildings-outlines.parquet"
+for (fn, url) in (
+    ("example_1.1.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v1.1.0/examples/example.parquet"),
+    ("example_1.0.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v1.0.0/examples/example.parquet"),
+    ("example_0.4.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v0.4.0/examples/example.parquet"),
+    ("example_0.3.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v0.3.0/examples/example.parquet"),
+    ("example_0.2.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v0.2.0/examples/example.parquet"),
+    ("example_0.1.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v0.1.0/examples/geoparquet/example.parquet"),
+    ("nz-buildings-outlines.parquet", "https://storage.googleapis.com/open-geodata/linz-examples/nz-buildings-outlines.parquet"),
 )
-    fn = joinpath("data", basename(url))
+    fn = joinpath("data", fn)
     isfile(fn) || @info "Downloading " * Downloads.download(url, fn)
 end
 
 @testset "GeoParquet.jl" begin
 
     @testset "Reading" begin
-        fn = "data/example.parquet"
+        fn = "data/example_1.0.0.parquet"
         ds = Parquet2.Dataset(fn)
         meta = GeoParquet.geometadata(ds)
         @test meta.version == "1.0.0"
@@ -43,9 +48,38 @@ end
 
         @test_throws Exception GeoParquet.read(fn, columns=(:geom,))
     end
+
+    @testset "Versions" begin
+        @testset "0.1.0" begin
+            df = GeoParquet.read("data/example_0.1.0.parquet")
+            @test nrow(df) === 5
+            @test df.geometry[1] isa GFT.WellKnownBinary
+        end
+        @testset "0.2.0" begin
+            df = GeoParquet.read("data/example_0.2.0.parquet")
+            @test nrow(df) === 5
+            @test df.geometry[1] isa GFT.WellKnownBinary
+        end
+        @testset "0.3.0" begin
+            df = GeoParquet.read("data/example_0.3.0.parquet")
+            @test nrow(df) === 5
+            @test df.geometry[1] isa GFT.WellKnownBinary
+        end
+        @testset "0.4.0" begin
+            df = GeoParquet.read("data/example_0.4.0.parquet")
+            @test nrow(df) === 5
+            @test df.geometry[1] isa GFT.WellKnownBinary
+        end
+        @testset "1.1.0" begin
+            df = GeoParquet.read("data/example_1.1.0.parquet")
+            @test nrow(df) === 5
+            @test df.geometry[1] isa GFT.WellKnownBinary
+        end
+    end
+
     @testset "Reading QuackIO" begin
         using QuackIO
-        fn = "data/example.parquet"
+        fn = "data/example_1.0.0.parquet"
         ds = Parquet2.Dataset(fn)
         meta = GeoParquet.geometadata(ds)
         @test meta.version == "1.0.0"
@@ -84,11 +118,11 @@ end
         ndf = GeoParquet.read(fn)
         df.geom != ndf.geom  # original is not mutated
 
-        fn = "data/example.parquet"
+        fn = "data/example_1.0.0.parquet"
         df = GeoParquet.read(fn)
         GeoParquet.write("data/example_copy.parquet", df, (:geometry,))
 
-        fn = "data/example.parquet"
+        fn = "data/example_1.0.0.parquet"
         df = GeoParquet.read(fn)
         GeoParquet.write("data/example_copy.parquet", df, (:geometry,), compression_codec=:snappy, npages=2)
     end
