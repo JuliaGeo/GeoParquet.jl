@@ -100,10 +100,43 @@ Base.@kwdef struct MetaRoot{T<:MetaColumn}
     columns::Dict{String,T} = Dict("geometry" => T())
 end
 
+# For compatibility with old files
+MetaRoot{T}(version::Nothing, primary_column, columns) where T<:MetaColumn = MetaRoot(; version=versionstring(T), primary_column, columns)
+versionstring(::Type{MetaColumnv0_1}) = "0.1.0"
+versionstring(::Type{MetaColumnv0_2}) = "0.2.0"
+versionstring(::Type{MetaColumnv0_3}) = "0.3.0"
+versionstring(::Type{MetaColumnv0_4}) = "0.4.0"
+versionstring(::Type{MetaColumnv1_0}) = "1.0.0"
+versionstring(::Type{MetaColumnv1_1}) = "1.1.0"
+
+struct Wrapper{NT}
+    nt::NT
+end
+Wrapper() = Wrapper((var"1.1.0"=MetaRoot{MetaColumnv1_1}, var"1.0.0"=MetaRoot{MetaColumnv1_0}, var"0.4.0"=MetaRoot{MetaColumnv0_4}, var"0.3.0"=MetaRoot{MetaColumnv0_3}, var"0.2.0"=MetaRoot{MetaColumnv0_2}, var"0.1.0"=MetaRoot{MetaColumnv0_1}))
+
+# Default to latest version
+function Base.getindex(w::Wrapper, key::Symbol)
+    haskey(w.nt, key) && return w.nt[key]
+    stringkey = string(key)
+    # Handle cases like `1.0.0-beta.1`
+    if length(stringkey) > 5
+        stripkey = Symbol(stringkey[1:5])
+        haskey(w.nt, stripkey) && return w.nt[stripkey]
+    end
+    MetaRoot{MetaColumnv1_0}
+end
+Base.length(w::Wrapper) = length(w.nt)
+
+# Some old files use "schema_version" instead of "version"
+struct VersionWrapper end
+function Base.:(==)(x, ::VersionWrapper)
+    x == :version || x == :schema_version
+end
+
 StructTypes.StructType(::Type{MetaRoot}) = StructTypes.AbstractType()
 StructTypes.StructType(::Type{MetaRoot{T}}) where T<:MetaColumn = StructTypes.Struct()
-StructTypes.subtypekey(::Type{MetaRoot}) = :version
-StructTypes.subtypes(::Type{MetaRoot}) = (var"1.1.0"=MetaRoot{MetaColumnv1_1}, var"1.0.0"=MetaRoot{MetaColumnv1_0}, var"0.4.0"=MetaRoot{MetaColumnv0_4}, var"0.3.0"=MetaRoot{MetaColumnv0_3}, var"0.2.0"=MetaRoot{MetaColumnv0_2}, var"0.1.0"=MetaRoot{MetaColumnv0_1})
+StructTypes.subtypekey(::Type{MetaRoot}) = VersionWrapper()
+StructTypes.subtypes(::Type{MetaRoot}) = Wrapper()
 StructTypes.StructType(::Type{MetaColumnv0_1}) = StructTypes.Struct()
 StructTypes.StructType(::Type{MetaColumnv0_2}) = StructTypes.Struct()
 StructTypes.StructType(::Type{MetaColumnv0_3}) = StructTypes.Struct()

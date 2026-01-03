@@ -23,7 +23,6 @@ QuackIOExt = ["QuackIO", "DuckDB_jll"]
 
 [compat]
 DataFrames = "1"
-DuckDB_jll = "~1.0"  # more recent versions fail on windows
 Extents = "0.1"
 GeoFormatTypes = "0.4"
 GeoInterface = "1.4"

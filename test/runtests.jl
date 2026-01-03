@@ -31,13 +31,10 @@ end
         @test meta.columns["geometry"].bbox[end] ≈ 83.6451
         @test meta.columns["geometry"].geometry_types == ["Polygon", "MultiPolygon"]
 
-        ds = Parquet2.Dataset("data/nz-buildings-outlines.parquet")
-        # this file is still at 0.1.0, using "schema_version", breaking our code
-        # @info Parquet2.metadata(ds)["geo"]
-        # meta = GeoParquet.geometadata(ds)
-        # @info meta
-        # @test meta.version == "0.3.0"
-        # @test meta.columns["geometry"].bbox[end] ≈ 6190596.9
+        ds = Parquet2.Dataset("data/eurocrops.parquet")
+        meta = GeoParquet.geometadata(ds)
+        @test meta.version == "1.0.0-beta.1"
+        @test meta.columns["geometry"].bbox[end] ≈ -1.1343175883999988e6
 
         df = GeoParquet.read(fn)
         @test nrow(df) === 5
@@ -71,9 +68,7 @@ end
             @test df.geometry[1] isa GFT.WellKnownBinary
         end
         @testset "1.1.0" begin
-            df = GeoParquet.read("data/example_1.1.0.parquet")
-            @test nrow(df) === 5
-            @test df.geometry[1] isa GFT.WellKnownBinary
+            @test_throws Exception GeoParquet.read("data/example_1.1.0.parquet")
         end
     end
 
@@ -88,18 +83,19 @@ end
         @test meta.columns["geometry"].geometry_types == ["Polygon", "MultiPolygon"]
 
         ds = Parquet2.Dataset("data/nz-buildings-outlines.parquet")
-        # this file is still at 0.1.0, using "schema_version", breaking our code
-        # @info Parquet2.metadata(ds)["geo"]
-        # meta = GeoParquet.geometadata(ds)
-        # @info meta
-        # @test meta.version == "0.3.0"
-        # @test meta.columns["geometry"].bbox[end] ≈ 6190596.9
+        meta = GeoParquet.geometadata(ds)
+        @test meta.version == "0.1.0"
+        @test meta.columns["geometry"].bbox[end] ≈ 6190596.9
 
         df = GeoParquet.read(fn)
         @test nrow(df) === 5
         @test df.geometry[1] isa GFT.WellKnownBinary
 
         @test_throws Exception GeoParquet.read(fn, columns=(:geom,))
+
+        df = GeoParquet.read("data/example_1.1.0.parquet")
+        @test nrow(df) === 5
+        @test df.geometry[1] isa GFT.WellKnownBinary
     end
 
     @testset "Writing" begin
