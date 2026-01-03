@@ -55,11 +55,11 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
         end
         types = typeof.(unique(GI.geomtrait.(data)))
         gtypes = getindex.((geowkb,), types)
-        mc = MetaColumn(geometry_types=gtypes, bbox=bbox, crs=crs)
+        mc = MetaColumnv1_0(geometry_types=gtypes, bbox=bbox, crs=crs)
         columns[String(column)] = mc
     end
 
-    md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot(columns=columns, primary_column=String(first(geometrycolumn)))))
+    md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot{MetaColumnv1_0}(columns=columns, primary_column=String(first(geometrycolumn)))))
 
     kw = Dict{Symbol,Any}(kwargs)
     get!(kw, :compression_codec, :zstd)
@@ -72,10 +72,19 @@ end
 
 Read a GeoParquet file as DataFrame. Kwargs are passed to the Parquet2.Dataset constructor.
 """
-function read(::Parquet2Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath,Parquet2.FileManager}; kwargs...)
-    ds = Parquet2.Dataset(fn, kwargs...)
+function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath,Parquet2.FileManager}; kwargs...)
+    ds = try
+        Parquet2.Dataset(fn, kwargs...)
+    catch e
+        if e isa FieldError
+            error("Parquet2 can't read this file (see https://gitlab.com/ExpandingMan/Parquet2.jl/-/issues/55), try `import QuackIO` and rerun instead.")
+        else
+            rethrow(e)
+        end
+    end
     is_valid(ds) || error("Not a valid GeoParquet file")
     meta = geometadata(ds)
+
     df = DataFrame(ds; copycols=false)
     for column in keys(meta.columns)
         df[!, column] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, column])
@@ -89,8 +98,5 @@ function read(::Parquet2Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.
     df
 end
 
-function read(fn::AbstractString; driver=nothing, kwargs...)
-    ext = Base.get_extension(GeoParquet, :QuackIOExt)
-    driver = isnothing(ext) ? Parquet2Driver() : QuackIODriver()
-    read(driver, fn; kwargs...)
-end
+# Default to QuackIODriver if available, otherwise fallback to Parquet2Driver
+read(fn::AbstractString; driver=nothing, kwargs...) = read(QuackIODriver(), fn; kwargs...)
