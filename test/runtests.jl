@@ -14,6 +14,7 @@ for (fn, url) in (
     ("example_0.3.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v0.3.0/examples/example.parquet"),
     ("example_0.2.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v0.2.0/examples/example.parquet"),
     ("example_0.1.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v0.1.0/examples/geoparquet/example.parquet"),
+    ("eurocrops.parquet", "https://data.source.coop/cholmes/eurocrops/unprojected/geoparquet/SK_2021_EC21.parquet"),
     ("nz-buildings-outlines.parquet", "https://storage.googleapis.com/open-geodata/linz-examples/nz-buildings-outlines.parquet"),
 )
     fn = joinpath("data", fn)
