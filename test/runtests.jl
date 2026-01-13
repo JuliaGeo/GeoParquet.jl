@@ -136,6 +136,7 @@ end
         @test df.b[end] == 10
         @test df.a[1] isa UInt16
         @test df.b[end] isa Int8
+    end
 
     @testset "Metadata" begin
         df = DataFrame(a=1, geometry=[(1.,2.)])
