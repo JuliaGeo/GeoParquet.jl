@@ -5,6 +5,7 @@ using Downloads
 using Test
 using ArchGDAL
 using JSON3
+using DataAPI
 import GeoFormatTypes as GFT
 
 for (fn, url) in (
@@ -135,5 +136,16 @@ end
         @test df.b[end] == 10
         @test df.a[1] isa UInt16
         @test df.b[end] isa Int8
+
+    @testset "Metadata" begin
+        df = DataFrame(a=1, geometry=[(1.,2.)])
+        DataAPI.metadata!(df, "author", "test")
+        DataAPI.colmetadata!(df, :a, "description", "A normal column")
+        DataAPI.colmetadata!(df, :geometry, "description", "A point geometry")
+        GeoParquet.write("metadata.arrow", df)
+        dfn = GeoParquet.read("metadata.arrow")
+        @test DataAPI.metadata(dfn)["author"] == "test"
+        @test DataAPI.colmetadata(dfn)[:a]["description"] == "A normal column"
+        @test DataAPI.colmetadata(dfn)[:geometry]["description"] == "A point geometry"
     end
 end

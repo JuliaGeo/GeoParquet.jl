@@ -9,6 +9,7 @@ import JSON3
 using DataFrames
 using Extents
 using WellKnownGeometry
+using DataAPI
 
 include("meta.jl")
 include("utils.jl")
