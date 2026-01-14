@@ -6,7 +6,10 @@ using Test
 using ArchGDAL
 using DataAPI
 import GeoFormatTypes as GFT
+import GeoInterface as GI
+using WellKnownGeometry
 
+# Download standard test files
 for (fn, url) in (
     ("example_1.1.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v1.1.0/examples/example.parquet"),
     ("example_1.0.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v1.0.0/examples/example.parquet"),
@@ -19,6 +22,17 @@ for (fn, url) in (
 )
     fn = joinpath("data", fn)
     isfile(fn) || @info "Downloading " * Downloads.download(url, fn)
+end
+
+# Download geoarrow test files from links.txt
+const GEOARROW_DIR = joinpath("data", "geoarrow")
+mkpath(GEOARROW_DIR)
+for line in eachline(joinpath(@__DIR__, "links.txt"))
+    line = String(strip(line))
+    (isempty(line) || startswith(line, "#")) && continue
+    fn = basename(line)
+    filepath = joinpath(GEOARROW_DIR, fn)
+    isfile(filepath) || @info "Downloading $fn" Downloads.download(line, filepath)
 end
 
 @testset "GeoParquet.jl" begin
@@ -149,4 +163,16 @@ end
         @test df.geometry[1] isa GFT.WellKnownBinary
     end
 
+    @testset "GeoArrow test files" begin
+        geoarrow_files = filter(f -> endswith(f, ".parquet"), readdir(GEOARROW_DIR, join=true))
+        @testset "Parse $(basename(fn))" for fn in geoarrow_files
+            df = GeoParquet.read(fn)
+            @test df isa DataFrame
+            @test nrow(df) >= 0
+            @test :geometry in propertynames(df)
+            if :geometry in propertynames(df) && nrow(df) > 0
+                @test GI.testgeometry(df.geometry[1])
+            end
+        end
+    end
 end
