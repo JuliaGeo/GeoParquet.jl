@@ -138,6 +138,19 @@ end
         @test DataAPI.colmetadata(dfn)[:geometry]["description"] == "A point geometry"
     end
 
+    @testset "GeoArrow test files" begin
+        geoarrow_files = filter(f -> endswith(f, ".parquet"), readdir(GEOARROW_DIR, join=true))
+        @testset "Parse $(basename(fn))" for fn in geoarrow_files
+            df = GeoParquet.read(fn)
+            @test df isa DataFrame
+            @test nrow(df) >= 0
+            @test :geometry in propertynames(df)
+            if :geometry in propertynames(df) && nrow(df) > 0
+                @test GI.testgeometry(df.geometry[1])
+            end
+        end
+    end
+
     @testset "Reading QuackIO" begin
         using QuackIO
         fn = "data/example_1.0.0.parquet"
@@ -164,16 +177,4 @@ end
         @test df.geometry[1] isa GFT.WellKnownBinary
     end
 
-    @testset "GeoArrow test files" begin
-        geoarrow_files = filter(f -> endswith(f, ".parquet"), readdir(GEOARROW_DIR, join=true))
-        @testset "Parse $(basename(fn))" for fn in geoarrow_files
-            df = GeoParquet.read(fn)
-            @test df isa DataFrame
-            @test nrow(df) >= 0
-            @test :geometry in propertynames(df)
-            if :geometry in propertynames(df) && nrow(df) > 0
-                @test GI.testgeometry(df.geometry[1])
-            end
-        end
-    end
 end
