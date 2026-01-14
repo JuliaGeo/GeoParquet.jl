@@ -74,32 +74,6 @@ end
         end
     end
 
-    @testset "Reading QuackIO" begin
-        using QuackIO
-        fn = "data/example_1.0.0.parquet"
-        ds = Parquet2.Dataset(fn)
-        meta = GeoParquet.geometadata(ds)
-        @test meta.version == "1.0.0"
-        @test meta.version == "1.0.0"
-        @test meta.columns["geometry"].bbox[end] ≈ 83.6451
-        @test meta.columns["geometry"].geometry_types == ["Polygon", "MultiPolygon"]
-
-        ds = Parquet2.Dataset("data/nz-buildings-outlines.parquet")
-        meta = GeoParquet.geometadata(ds)
-        @test meta.version == "0.1.0"
-        @test meta.columns["geometry"].bbox[end] ≈ 6190596.9
-
-        df = GeoParquet.read(fn)
-        @test nrow(df) === 5
-        @test df.geometry[1] isa GFT.WellKnownBinary
-
-        @test_throws Exception GeoParquet.read(fn, columns=(:geom,))
-
-        df = GeoParquet.read("data/example_1.1.0.parquet")
-        @test nrow(df) === 5
-        @test df.geometry[1] isa GFT.WellKnownBinary
-    end
-
     @testset "Writing" begin
         geom = ArchGDAL.createpoint.([[1, 2], [1, 2]])
         wkb = ArchGDAL.toWKB.(geom)
@@ -149,4 +123,31 @@ end
         @test DataAPI.colmetadata(dfn)[:a]["description"] == "A normal column"
         @test DataAPI.colmetadata(dfn)[:geometry]["description"] == "A point geometry"
     end
+
+    @testset "Reading QuackIO" begin
+        using QuackIO
+        fn = "data/example_1.0.0.parquet"
+        ds = Parquet2.Dataset(fn)
+        meta = GeoParquet.geometadata(ds)
+        @test meta.version == "1.0.0"
+        @test meta.version == "1.0.0"
+        @test meta.columns["geometry"].bbox[end] ≈ 83.6451
+        @test meta.columns["geometry"].geometry_types == ["Polygon", "MultiPolygon"]
+
+        ds = Parquet2.Dataset("data/nz-buildings-outlines.parquet")
+        meta = GeoParquet.geometadata(ds)
+        @test meta.version == "0.1.0"
+        @test meta.columns["geometry"].bbox[end] ≈ 6190596.9
+
+        df = GeoParquet.read(fn)
+        @test nrow(df) === 5
+        @test df.geometry[1] isa GFT.WellKnownBinary
+
+        @test_throws Exception GeoParquet.read(fn, columns=(:geom,))
+
+        df = GeoParquet.read("data/example_1.1.0.parquet")
+        @test nrow(df) === 5
+        @test df.geometry[1] isa GFT.WellKnownBinary
+    end
+
 end
