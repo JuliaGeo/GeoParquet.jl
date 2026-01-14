@@ -59,11 +59,24 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
         columns[String(column)] = mc
     end
 
-    md = Dict("geo" => JSON3.write(GeoParquet.MetaRoot{MetaColumnv1_0}(columns=columns, primary_column=String(first(geometrycolumn)))))
+    metadata = DataAPI.metadata(df)
+    metadata = if isnothing(metadata) 
+        Dict{String,String}()
+    else
+        Dict((k, string(v)) for (k,v) in metadata)
+    end
+    metadata["geo"] = JSON3.write(GeoParquet.MetaRoot{MetaColumnv1_0}(columns=columns, primary_column=String(first(geometrycolumn))))
+
+    column_metadata = DataAPI.colmetadata(df)
+    if !isnothing(column_metadata)
+        for (k, v) in pairs(column_metadata)
+            column_metadata[k] = Dict(k=>string(v) for (k, v) in pairs(v))
+        end
+    end
 
     kw = Dict{Symbol,Any}(kwargs)
     get!(kw, :compression_codec, :zstd)
-    Parquet2.writefile(ofn, ndf; metadata=md, pairs(kw)...)
+    Parquet2.writefile(ofn, ndf; metadata, column_metadata, pairs(kw)...)
     return ofn
 end
 
@@ -86,8 +99,18 @@ function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.Abstract
     meta = geometadata(ds)
 
     df = DataFrame(ds; copycols=false)
+    original_metadata = metadata(df)
+    original_colmetadata = colmetadata(df)
     for column in keys(meta.columns)
         df[!, column] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, column])
+    end
+    for (k, v) in original_metadata
+        metadata!(df, k, v)
+    end
+    for (k, v) in original_colmetadata
+        for (vk, vv) in v
+            colmetadata!(df, k, vk, vv)
+        end
     end
     # set GeoInterface metadata
     metadata!(df, "GEOINTERFACE:geometrycolumns", Tuple(Symbol.(keys(meta.columns))), style=:note)
