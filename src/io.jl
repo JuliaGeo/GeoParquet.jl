@@ -104,8 +104,12 @@ function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.Abstract
 
     original_metadata = metadata(df)
     original_colmetadata = colmetadata(df)
-    for column in keys(meta.columns)
-        df[!, column] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, column])
+    for (columnname, column) in pairs(meta.columns)
+        if column.encoding == "WKB"
+            df[!, columnname] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, columnname])
+        else
+            @warn "Unsupported geometry encoding: $(column.encoding) for column $columnname, returning raw data"
+        end
     end
     for (k, v) in original_metadata
         metadata!(df, k, v)
