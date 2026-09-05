@@ -7,6 +7,18 @@ using ArchGDAL
 using JSON3
 using DataAPI
 import GeoFormatTypes as GFT
+import GeoInterface as GI
+
+struct MyPoint{N}
+    coords::NTuple{N,Float64}
+end
+GI.isgeometry(::Type{<:MyPoint}) = true
+GI.geomtrait(::MyPoint) = GI.PointTrait()
+GI.geomtrait(::Type{<:MyPoint}) = GI.PointTrait()
+GI.ncoord(::GI.PointTrait, ::MyPoint{N}) where {N} = N
+GI.getcoord(::GI.PointTrait, point::MyPoint, i) = point.coords[i]
+GI.is3d(::GI.PointTrait, ::MyPoint{N}) where {N} = N >= 3
+GI.ismeasured(::GI.PointTrait, ::MyPoint{N}) where {N} = N >= 4
 
 for (fn, url) in (
     ("example_1.1.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v1.1.0/examples/example.parquet"),
@@ -97,6 +109,23 @@ end
         fn = "data/example_1.0.0.parquet"
         df = GeoParquet.read(fn)
         GeoParquet.write("data/example_copy.parquet", df, (:geometry,), compression_codec=:snappy, npages=2)
+
+        mktempdir() do dir
+            path = joinpath(dir, "dimensions.parquet")
+            df = DataFrame(
+                profile=[GI.MultiPoint([(1.0, 2.0, 3.0)])],
+                measure=[GI.Point{false,true}(1.0, 2.0, 3.0)],
+            )
+            GeoParquet.write(path, df; geometrycolumn=(:profile, :measure))
+            columns = GeoParquet.geometadata(Parquet2.Dataset(path)).columns
+            @test (columns["profile"].geometry_types, columns["measure"].geometry_types) ==
+                (["MultiPoint Z"], ["Point M"])
+
+            path = joinpath(dir, "empty-point.parquet")
+            df = DataFrame(profile=MyPoint{3}[])
+            GeoParquet.write(path, df; geometrycolumn=(:profile,))
+            @test GeoParquet.geometadata(Parquet2.Dataset(path)).columns["profile"].geometry_types == ["Point"]
+        end
     end
 
     @testset "Parquet2 FilePath" begin

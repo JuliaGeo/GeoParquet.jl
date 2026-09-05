@@ -48,13 +48,22 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
     for column in geometrycolumns
         column in Tables.columnnames(tcols) || error("Geometry column $column not found in table")
         data = Tables.getcolumn(tcols, column)
-        GI.isgeometry(first(data)) || error("Geometry in $column must support the GeoInterface")
+        gtypes = if isempty(data)
+            trait = GI.trait(eltype(data))
+            haskey(geowkb, typeof(trait)) || error("Geometry in $column must support the GeoInterface")
+            [geowkb[typeof(trait)]]
+        else
+            unique(map(data) do geometry
+                trait = GI.trait(geometry)
+                haskey(geowkb, typeof(trait)) || error("Geometry in $column must support the GeoInterface")
+                z, m = GI.is3d(trait, geometry), GI.ismeasured(trait, geometry)
+                geowkb[typeof(trait)] * (z ? " Z" : m ? " M" : "") * (z && m ? "M" : "")
+            end)
+        end
         T = eltype(data)
         if !(T <: GFT.WellKnownBinary) || !(T <: AbstractVector{UInt8})
             ndf[!, column] = _getwkb.(data)
         end
-        types = typeof.(unique(GI.geomtrait.(data)))
-        gtypes = getindex.((geowkb,), types)
         mc = MetaColumnv1_0(geometry_types=gtypes, bbox=bbox, crs=crs)
         columns[String(column)] = mc
     end
