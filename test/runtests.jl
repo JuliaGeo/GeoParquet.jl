@@ -4,7 +4,6 @@ using DataFrames
 using Downloads
 using Test
 using ArchGDAL
-using JSON3
 using DataAPI
 import GeoFormatTypes as GFT
 

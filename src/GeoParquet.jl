@@ -1,11 +1,10 @@
 module GeoParquet
 
 using Parquet2
-using StructTypes
 import GeoFormatTypes as GFT
 import GeoInterface as GI
-import StructTypes
-import JSON3
+import JSON
+import JSON: StructUtils
 using DataFrames
 using Extents
 using WellKnownGeometry

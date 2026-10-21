@@ -100,8 +100,8 @@ Base.@kwdef struct MetaRoot{T<:MetaColumn}
     columns::Dict{String,T} = Dict("geometry" => T())
 end
 
-# For compatibility with old files
-MetaRoot{T}(version::Nothing, primary_column, columns) where T<:MetaColumn = MetaRoot(; version=versionstring(T), primary_column, columns)
+# For compatibility with old files, which use "schema_version" instead of "version"
+StructUtils.fielddefaults(::StructUtils.StructStyle, ::Type{MetaRoot{T}}) where T<:MetaColumn = (version=versionstring(T),)
 versionstring(::Type{MetaColumnv0_1}) = "0.1.0"
 versionstring(::Type{MetaColumnv0_2}) = "0.2.0"
 versionstring(::Type{MetaColumnv0_3}) = "0.3.0"
@@ -109,48 +109,27 @@ versionstring(::Type{MetaColumnv0_4}) = "0.4.0"
 versionstring(::Type{MetaColumnv1_0}) = "1.0.0"
 versionstring(::Type{MetaColumnv1_1}) = "1.1.0"
 
-struct Wrapper{NT}
-    nt::NT
-end
-Wrapper() = Wrapper((var"1.1.0"=MetaRoot{MetaColumnv1_1}, var"1.0.0"=MetaRoot{MetaColumnv1_0}, var"0.4.0"=MetaRoot{MetaColumnv0_4}, var"0.3.0"=MetaRoot{MetaColumnv0_3}, var"0.2.0"=MetaRoot{MetaColumnv0_2}, var"0.1.0"=MetaRoot{MetaColumnv0_1}))
+const metaroots = Dict(versionstring(T) => MetaRoot{T} for T in (MetaColumnv0_1, MetaColumnv0_2, MetaColumnv0_3, MetaColumnv0_4, MetaColumnv1_0, MetaColumnv1_1))
 
-# Default to latest version
-function Base.getindex(w::Wrapper, key::Symbol)
-    haskey(w.nt, key) && return w.nt[key]
-    stringkey = string(key)
-    # Handle cases like `1.0.0-beta.1`
-    if length(stringkey) > 5
-        stripkey = Symbol(stringkey[1:5])
-        haskey(w.nt, stripkey) && return w.nt[stripkey]
-    end
-    MetaRoot{MetaColumnv1_0}
-end
-Base.length(w::Wrapper) = length(w.nt)
-
-# Some old files use "schema_version" instead of "version"
-struct VersionWrapper end
-function Base.:(==)(x, ::VersionWrapper)
-    x == :version || x == :schema_version
+# Handle cases like `1.0.0-beta.1`, default to 1.0.0
+JSON.@choosetype MetaRoot x -> begin
+    version = get(x, :version, nothing)
+    isnothing(version) && (version = get(x, :schema_version, nothing))
+    isnothing(version) && return MetaRoot{MetaColumnv1_0}
+    get(metaroots, first(version[], 5), MetaRoot{MetaColumnv1_0})
 end
 
-StructTypes.StructType(::Type{MetaRoot}) = StructTypes.AbstractType()
-StructTypes.StructType(::Type{MetaRoot{T}}) where T<:MetaColumn = StructTypes.Struct()
-StructTypes.subtypekey(::Type{MetaRoot}) = VersionWrapper()
-StructTypes.subtypes(::Type{MetaRoot}) = Wrapper()
-StructTypes.StructType(::Type{MetaColumnv0_1}) = StructTypes.Struct()
-StructTypes.StructType(::Type{MetaColumnv0_2}) = StructTypes.Struct()
-StructTypes.StructType(::Type{MetaColumnv0_3}) = StructTypes.Struct()
-StructTypes.StructType(::Type{MetaColumnv0_4}) = StructTypes.Struct()
-StructTypes.StructType(::Type{MetaColumnv1_0}) = StructTypes.Struct()
-StructTypes.StructType(::Type{MetaColumnv1_1}) = StructTypes.Struct()
-StructTypes.StructType(::Type{GFT.WellKnownText2{GFT.CRS}}) = StructTypes.StringType()
-StructTypes.StructType(::Type{GFT.ProjJSON}) = StructTypes.DictType()
-StructTypes.construct(::Type{GFT.ProjJSON}, x::Dict; kw...) = GFT.ProjJSON(x)
-StructTypes.construct(::Type{GFT.WellKnownText2{GFT.CRS}}, x::String; kw...) = GFT.WellKnownText2{GFT.CRS}(GFT.CRS(), x)
-StructTypes.omitempties(::Type{<:MetaColumn}) = true
+# Style to pass to JSON.parse and JSON.json, so the GeoFormatTypes overloads below don't apply globally
+struct GeoParquetStyle <: JSON.JSONStyle end
 
-Base.pairs(p::GFT.ProjJSON) = pairs(p.val)
-GFT.ProjJSON(input::Dict{Symbol,<:Any}) = GFT.ProjJSON(todict(input))
+StructUtils.structlike(::GeoParquetStyle, ::Type{GFT.ProjJSON}) = false
+StructUtils.structlike(::GeoParquetStyle, ::Type{GFT.WellKnownText2{GFT.CRS}}) = false
+JSON.lift(::GeoParquetStyle, ::Type{GFT.ProjJSON}, x::JSON.Object) = GFT.ProjJSON(Dict{String,Any}(x))
+JSON.lift(::GeoParquetStyle, ::Type{GFT.WellKnownText2{GFT.CRS}}, x::AbstractString) = GFT.WellKnownText2{GFT.CRS}(GFT.CRS(), x)
+JSON.lower(::GeoParquetStyle, x::GFT.ProjJSON) = x.val isa String ? JSON.JSONText(x.val) : x.val
+JSON.lower(::GeoParquetStyle, x::GFT.WellKnownText2{GFT.CRS}) = x.val
+JSON.omit_null(::Type{<:MetaColumn}) = true
+JSON.omit_empty(::Type{<:MetaColumn}) = true
 
 Parquet2.parqtype(::Type{GFT.WellKnownBinary{GFT.Geom,Vector{UInt8}}}) = Parquet2.ParqByteArray()
 Parquet2.parqtype(::Type{GFT.WellKnownBinary{GFT.Geom,Base.CodeUnits{UInt8,String}}}) = Parquet2.ParqByteArray()
