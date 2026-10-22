@@ -12,7 +12,7 @@ function GeoParquet.read(::GeoParquet.QuackIODriver, fn::AbstractString; kwargs.
     value = values[1]
     GeoParquet.DataFrames.metadata!(df, "geo", value; style=:note)
 
-    meta = GeoParquet.JSON3.read(value, GeoParquet.MetaRoot)
+    meta = GeoParquet.JSON.parse(value, GeoParquet.MetaRoot; style=GeoParquet.GeoParquetStyle())
 
     for column in keys(meta.columns)
         df[!, column] = GeoParquet.GFT.WellKnownBinary.(Ref(GeoParquet.GFT.Geom()), df[!, column])

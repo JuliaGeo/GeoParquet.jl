@@ -65,7 +65,7 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
     else
         Dict((k, string(v)) for (k,v) in metadata)
     end
-    metadata["geo"] = JSON3.write(GeoParquet.MetaRoot{MetaColumnv1_0}(columns=columns, primary_column=String(first(geometrycolumn))))
+    metadata["geo"] = JSON.json(GeoParquet.MetaRoot{MetaColumnv1_0}(columns=columns, primary_column=String(first(geometrycolumn))); style=GeoParquetStyle())
 
     column_metadata = DataAPI.colmetadata(df)
     if !isnothing(column_metadata)
