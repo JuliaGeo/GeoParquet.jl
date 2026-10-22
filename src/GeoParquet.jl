@@ -10,7 +10,6 @@ using Extents
 using WellKnownGeometry
 using DataAPI
 using PrecompileTools: @setup_workload, @compile_workload
-using Dates: Date, DateTime
 
 include("meta.jl")
 include("utils.jl")

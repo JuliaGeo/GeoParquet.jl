@@ -9,18 +9,12 @@
         GI.MultiPolygon([[ring]]),
     ]
     n = length(geometries)
-    df = DataFrame(
-        int=1:n, int32=Int32.(1:n), float=rand(n), float32=rand(Float32, n), bool=isodd.(1:n),
-        string=string.(1:n), missings=[missing; 2:n], missingstrings=[missing; string.(2:n)],
-        date=fill(Date(2020), n), datetime=fill(DateTime(2020), n),
-        geometry=geometries,
-    )
+    df = DataFrame(int=1:n, float=rand(n), string=string.(1:n), geometry=geometries)
     @compile_workload begin
         mktempdir() do dir
             fn = joinpath(dir, "precompile.parquet")
             write(fn, df)
-            rdf = read(fn)
-            write(joinpath(dir, "precompile_wkb.parquet"), rdf)
+            read(fn)
         end
     end
 end
