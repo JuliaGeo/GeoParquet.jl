@@ -6,11 +6,13 @@ authors = ["Maarten Pronk <git@evetion.nl> and contributors."]
 [deps]
 DataAPI = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Extents = "411431e0-e8b7-467b-b5e0-f676ba4f2910"
 GeoFormatTypes = "68eda718-8dee-11e9-39e7-89f7f65f511f"
 GeoInterface = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 Parquet2 = "98572fba-bba0-415d-956f-fa77e587d26d"
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 WellKnownGeometry = "0f680547-7be7-4555-8820-bb198eeb646b"
 
@@ -24,11 +26,13 @@ QuackIOExt = ["QuackIO", "DuckDB_jll"]
 [compat]
 DataAPI = "1"
 DataFrames = "1"
+Dates = "1"
 Extents = "0.1"
 GeoFormatTypes = "0.4"
 GeoInterface = "1.4"
 JSON = "1.6.1"
 Parquet2 = "0.2.36"
+PrecompileTools = "1"
 QuackIO = "0.1.3"
 Tables = "1"
 WellKnownGeometry = "0.2"
