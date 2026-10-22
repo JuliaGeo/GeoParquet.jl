@@ -17,8 +17,12 @@ function GeoParquet.read(::GeoParquet.QuackIODriver, fn::AbstractString; kwargs.
 
     meta = GeoParquet.JSON.parse(value, GeoParquet.MetaRoot; style=GeoParquet.GeoParquetStyle())
 
-    for column in keys(meta.columns)
-        df[!, column] = GeoParquet.GFT.WellKnownBinary.(Ref(GeoParquet.GFT.Geom()), df[!, column])
+    for (columnname, column) in pairs(meta.columns)
+        if column.encoding == "WKB"
+            df[!, columnname] = GeoParquet.GFT.WellKnownBinary.(Ref(GeoParquet.GFT.Geom()), df[!, columnname])
+        else
+            @warn "Unsupported geometry encoding: $(column.encoding) for column $columnname, returning raw data"
+        end
     end
     df
 end
