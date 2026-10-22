@@ -3,7 +3,7 @@ using QuackIO
 using GeoParquet
 
 function GeoParquet.read(::GeoParquet.QuackIODriver, fn::AbstractString; kwargs...)
-    df = QuackIO.read_parquet(GeoParquet.DataFrame, fn, kwargs...)
+    df = QuackIO.read_parquet(GeoParquet.DataFrame, fn; kwargs...)
 
     qstr = """select * from parquet_kv_metadata($(QuackIO.kwarg_val_to_db_incomma(fn))) where key = 'geo'"""
     result = QuackIO.DBInterface.execute(QuackIO.DuckDB.DB(), qstr)

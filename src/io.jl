@@ -38,6 +38,9 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
 
     # For on the fly conversion to WKB
     ndf = DataFrame(df; copycols=false)
+    # Replacing columns below drops non-note metadata, so collect it first
+    metadata = Dict{String,String}(k => string(v) for (k, v) in DataAPI.metadata(ndf))
+    column_metadata = Dict(col => Dict{String,String}(k => string(v) for (k, v) in kv) for (col, kv) in DataAPI.colmetadata(ndf))
 
     geometrycolumns = if geometrycolumn isa Tuple || geometrycolumn isa Vector
         geometrycolumn
@@ -59,20 +62,7 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
         columns[String(column)] = mc
     end
 
-    metadata = DataAPI.metadata(df)
-    metadata = if isnothing(metadata)
-        Dict{String,String}()
-    else
-        Dict((k, string(v)) for (k,v) in metadata)
-    end
     metadata["geo"] = JSON.json(GeoParquet.MetaRoot{MetaColumnv1_0}(columns=columns, primary_column=String(first(geometrycolumn))); style=GeoParquetStyle())
-
-    column_metadata = DataAPI.colmetadata(df)
-    if !isnothing(column_metadata)
-        for (k, v) in pairs(column_metadata)
-            column_metadata[k] = Dict(k=>string(v) for (k, v) in pairs(v))
-        end
-    end
 
     kw = Dict{Symbol,Any}(kwargs)
     get!(kw, :compression_codec, :zstd)
@@ -87,9 +77,11 @@ Read a GeoParquet file as DataFrame. Kwargs are passed to the Parquet2.Dataset c
 """
 function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath,Parquet2.FileManager}; kwargs...)
     ds = try
-        Parquet2.Dataset(fn, kwargs...)
+        Parquet2.Dataset(fn; kwargs...)
     catch e
-        if e isa FieldError
+        # FieldError was added in Julia 1.12, earlier versions throw an ErrorException
+        is_field_error = @static isdefined(Base, :FieldError) ? e isa FieldError : (e isa ErrorException && occursin("has no field", e.msg))
+        if is_field_error
             error("Parquet2 can't read this file (see https://gitlab.com/ExpandingMan/Parquet2.jl/-/issues/55), try `import QuackIO` and rerun instead.")
         else
             rethrow(e)
