@@ -58,7 +58,9 @@ end
         @test metadata(df, "GEOINTERFACE:geometrycolumns") == (:geometry,)
         @test metadata(df, "GEOINTERFACE:crs") isa GFT.ProjJSON
 
-        @test_throws Exception GeoParquet.read(fn, columns=(:geom,))
+        # Keyword arguments are passed to Parquet2.Dataset
+        @test !(GeoParquet.read(fn).continent isa Vector)
+        @test GeoParquet.read(fn; lazy_dictionary=false).continent isa Vector
     end
 
     @testset "Versions" begin
@@ -83,7 +85,7 @@ end
             @test df.geometry[1] isa GFT.WellKnownBinary
         end
         @testset "1.1.0" begin
-            @test_throws Exception GeoParquet.read("data/example_1.1.0.parquet")
+            @test_throws "import QuackIO" GeoParquet.read("data/example_1.1.0.parquet")
         end
     end
 
@@ -110,6 +112,11 @@ end
         fn = "data/example_1.0.0.parquet"
         df = GeoParquet.read(fn)
         GeoParquet.write("data/example_copy.parquet", df, (:geometry,), compression_codec=:snappy, npages=2)
+
+        # Tables without metadata support
+        fn = "data/write_namedtuple.parquet"
+        GeoParquet.write(fn, (test=["a", "b"], geometry=[(1.0, 2.0), (3.0, 4.0)]))
+        @test GeoParquet.read(fn).test == ["a", "b"]
     end
 
     @testset "Parquet2 FilePath" begin
@@ -130,8 +137,8 @@ end
         DataAPI.metadata!(df, "author", "test")
         DataAPI.colmetadata!(df, :a, "description", "A normal column")
         DataAPI.colmetadata!(df, :geometry, "description", "A point geometry")
-        GeoParquet.write("metadata.arrow", df)
-        dfn = GeoParquet.read("metadata.arrow")
+        GeoParquet.write("data/metadata.parquet", df)
+        dfn = GeoParquet.read("data/metadata.parquet")
         @test DataAPI.metadata(dfn)["author"] == "test"
         @test DataAPI.colmetadata(dfn)[:a]["description"] == "A normal column"
         @test DataAPI.colmetadata(dfn)[:geometry]["description"] == "A point geometry"
@@ -171,7 +178,8 @@ end
         @test nrow(df) === 5
         @test df.geometry[1] isa GFT.WellKnownBinary
 
-        @test_throws Exception GeoParquet.read(fn, columns=(:geom,))
+        # Keyword arguments are passed to QuackIO.read_parquet
+        @test nrow(GeoParquet.read(fn; limit=2)) == 2
 
         df = GeoParquet.read("data/example_1.1.0.parquet")
         @test nrow(df) === 5
