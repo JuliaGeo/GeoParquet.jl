@@ -24,13 +24,13 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
             It looks like you invoked `GeoParquet.write` with three arguments, but also
             provided a `geometrycolumns` keyword argument.
 
-            The third positional argument in this method, `geocolumns`, is deprecated.  
-            Please pass geometry column information as a Symbol or Tuple of Symbols to 
+            The third positional argument in this method, `geocolumns`, is deprecated.
+            Please pass geometry column information as a Symbol or Tuple of Symbols to
             the `geometrycolumn` keyword argument instead, such that you only have two
             positional arguments as input.
         """)
     end
-        
+
     # Tables.istable(df) || throw(ArgumentError("`df` must be a table"))
 
     columns = Dict{String,Any}()
@@ -60,7 +60,7 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
     end
 
     metadata = DataAPI.metadata(df)
-    metadata = if isnothing(metadata) 
+    metadata = if isnothing(metadata)
         Dict{String,String}()
     else
         Dict((k, string(v)) for (k,v) in metadata)
@@ -95,14 +95,21 @@ function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.Abstract
             rethrow(e)
         end
     end
-    is_valid(ds) || error("Not a valid GeoParquet file")
+    df = DataFrame(ds; copycols=false)
+    if !is_valid(ds)
+        @warn "GeoParquet metadata not found in $fn, returning DataFrame without geometry parsing"
+        return df
+    end
     meta = geometadata(ds)
 
-    df = DataFrame(ds; copycols=false)
     original_metadata = metadata(df)
     original_colmetadata = colmetadata(df)
-    for column in keys(meta.columns)
-        df[!, column] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, column])
+    for (columnname, column) in pairs(meta.columns)
+        if column.encoding == "WKB"
+            df[!, columnname] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, columnname])
+        else
+            @warn "Unsupported geometry encoding: $(column.encoding) for column $columnname, returning raw data"
+        end
     end
     for (k, v) in original_metadata
         metadata!(df, k, v)
