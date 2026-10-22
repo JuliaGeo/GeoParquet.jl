@@ -62,7 +62,7 @@ function write(ofn::Union{AbstractString,Parquet2.FilePathsBase.AbstractPath}, d
         columns[String(column)] = mc
     end
 
-    metadata["geo"] = JSON.json(GeoParquet.MetaRoot{MetaColumnv1_0}(columns=columns, primary_column=String(first(geometrycolumn))); style=GeoParquetStyle())
+    metadata["geo"] = JSON.json(GeoParquet.MetaRoot{MetaColumnv1_0}(columns=columns, primary_column=String(first(geometrycolumns))); style=GeoParquetStyle())
 
     kw = Dict{Symbol,Any}(kwargs)
     get!(kw, :compression_codec, :zstd)

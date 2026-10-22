@@ -105,6 +105,11 @@ end
         ndf = GeoParquet.read(fn)
         df.geom != ndf.geom  # original is not mutated
 
+        # geometrycolumn as a single Symbol
+        fn = "data/write_symbol.parquet"
+        GeoParquet.write(fn, DataFrame(test="test", geom=geom); geometrycolumn=:geom)
+        @test metadata(GeoParquet.read(fn), "GEOINTERFACE:geometrycolumns") == (:geom,)
+
         fn = "data/example_1.0.0.parquet"
         df = GeoParquet.read(fn)
         GeoParquet.write("data/example_copy.parquet", df, (:geometry,))
