@@ -27,4 +27,14 @@ function GeoParquet.read(::GeoParquet.QuackIODriver, fn::AbstractString; kwargs.
     df
 end
 
+using PrecompileTools: @compile_workload
+@compile_workload begin
+    mktempdir() do dir
+        fn = joinpath(dir, "precompile.parquet")
+        df = GeoParquet.DataFrame(int=1:2, float=[1.0, 2.0], string=["a", "b"], geometry=[GeoParquet.GI.Point(1.0, 2.0), GeoParquet.GI.Point(3.0, 4.0)])
+        GeoParquet.write(fn, df)
+        GeoParquet.read(GeoParquet.QuackIODriver(), fn)
+    end
+end
+
 end

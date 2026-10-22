@@ -9,10 +9,12 @@ using DataFrames
 using Extents
 using WellKnownGeometry
 using DataAPI
+using PrecompileTools: @setup_workload, @compile_workload
 
 include("meta.jl")
 include("utils.jl")
 include("io.jl")
 include("geointerface.jl")
+include("precompile.jl")
 
 end
