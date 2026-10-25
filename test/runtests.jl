@@ -101,7 +101,7 @@ end
         # Transparently convert columns to WKB
         fn = "data/writec.parquet"
         df = DataFrame(test="test", value=rand(2), geom=geom)
-        GeoParquet.write(fn, df, (:geom,))
+        GeoParquet.write(fn, df; geometrycolumn=(:geom,))
         ndf = GeoParquet.read(fn)
         df.geom != ndf.geom  # original is not mutated
 
@@ -110,13 +110,28 @@ end
         GeoParquet.write(fn, DataFrame(test="test", geom=geom); geometrycolumn=:geom)
         @test metadata(GeoParquet.read(fn), "GEOINTERFACE:geometrycolumns") == (:geom,)
 
-        fn = "data/example_1.0.0.parquet"
-        df = GeoParquet.read(fn)
-        GeoParquet.write("data/example_copy.parquet", df, (:geometry,))
+        # crs and bbox keywords
+        fn = "data/write_crs.parquet"
+        crs = GFT.ProjJSON(GeoParquet.projjson)
+        bbox = [1.0, 2.0, 1.0, 2.0]
+        GeoParquet.write(fn, DataFrame(test="test", geom=geom); geometrycolumn=:geom, crs, bbox)
+        @test metadata(GeoParquet.read(fn), "GEOINTERFACE:crs") == crs
+        ds = Parquet2.Dataset(fn)
+        @test GeoParquet.geometadata(ds).columns["geom"].bbox == bbox
+        close(ds)
+
+        # Positional geometry columns, crs and bbox are deprecated
+        fn = "data/write_deprecated.parquet"
+        @test_deprecated GeoParquet.write(fn, DataFrame(test="test", geom=geom), (:geom,), crs, bbox)
+        @test metadata(GeoParquet.read(fn), "GEOINTERFACE:crs") == crs
 
         fn = "data/example_1.0.0.parquet"
         df = GeoParquet.read(fn)
-        GeoParquet.write("data/example_copy.parquet", df, (:geometry,), compression_codec=:snappy, npages=2)
+        GeoParquet.write("data/example_copy.parquet", df; geometrycolumn=(:geometry,))
+
+        fn = "data/example_1.0.0.parquet"
+        df = GeoParquet.read(fn)
+        GeoParquet.write("data/example_copy.parquet", df; geometrycolumn=(:geometry,), compression_codec=:snappy, npages=2)
 
         # Tables without metadata support
         fn = "data/write_namedtuple.parquet"
