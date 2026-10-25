@@ -66,15 +66,21 @@ function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.Abstract
     ds = try
         Parquet2.Dataset(fn; kwargs...)
     catch e
-        # FieldError was added in Julia 1.12, earlier versions throw an ErrorException
+        # Nested columns (https://gitlab.com/ExpandingMan/Parquet2.jl/-/issues/55) throw a FieldError,
+        # which was added in Julia 1.12, earlier versions throw an ErrorException
         is_field_error = @static isdefined(Base, :FieldError) ? e isa FieldError : (e isa ErrorException && occursin("has no field", e.msg))
-        if is_field_error
-            error("Parquet2 can't read this file (see https://gitlab.com/ExpandingMan/Parquet2.jl/-/issues/55), try `import QuackIO` and rerun instead.")
+        # Parquet's GEOMETRY and GEOGRAPHY types, used by GeoParquet 2.0, throw an EOFError or MethodError
+        if is_field_error || e isa EOFError || e isa MethodError
+            error("Parquet2 can't read this file, for example GeoParquet 2.0 files or files with nested columns (see https://gitlab.com/ExpandingMan/Parquet2.jl/-/issues/55), try `import QuackIO` and rerun instead.")
         else
             rethrow(e)
         end
     end
     df = DataFrame(ds; copycols=false)
+    # GeoInterface metadata only comes from the `geo` metadata, not from the file's key-value metadata
+    for key in collect(metadatakeys(df))
+        startswith(key, "GEOINTERFACE:") && deletemetadata!(df, key)
+    end
     if !is_valid(ds)
         @warn "GeoParquet metadata not found in $fn, returning DataFrame without geometry parsing"
         return df
@@ -85,7 +91,7 @@ function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.Abstract
     original_colmetadata = colmetadata(df)
     for (columnname, column) in pairs(meta.columns)
         if column.encoding == "WKB"
-            df[!, columnname] = GFT.WellKnownBinary.(Ref(GFT.Geom()), df[!, columnname])
+            df[!, columnname] = _wkb.(df[!, columnname])
         else
             @warn "Unsupported geometry encoding: $(column.encoding) for column $columnname, returning raw data"
         end
@@ -98,13 +104,16 @@ function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.Abstract
             colmetadata!(df, k, vk, vv)
         end
     end
-    # set GeoInterface metadata
-    metadata!(df, "GEOINTERFACE:geometrycolumns", Tuple(Symbol.(keys(meta.columns))), style=:note)
-    crs = meta.columns[meta.primary_column].crs
-    if !isnothing(crs)
-        metadata!(df, "GEOINTERFACE:crs", crs, style=:note)
-    end
-    df
+    set_geointerface_metadata!(df, meta)
+end
+
+# Set the metadata that GI.geometrycolumns and GI.crs read from the `geo` metadata
+set_geointerface_metadata!(df, meta::MetaRoot) = set_geointerface_metadata!(df, Tuple(Symbol.(keys(meta.columns))), meta.columns[meta.primary_column].crs)
+
+function set_geointerface_metadata!(df, geometrycolumns, crs)
+    metadata!(df, "GEOINTERFACE:geometrycolumns", geometrycolumns, style=:note)
+    isnothing(crs) || metadata!(df, "GEOINTERFACE:crs", crs, style=:note)
+    return df
 end
 
 # Default to QuackIODriver if available, otherwise fallback to Parquet2Driver

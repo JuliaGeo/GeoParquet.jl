@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/JuliaGeo/GeoParquet.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/JuliaGeo/GeoParquet.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/JuliaGeo/GeoParquet.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/JuliaGeo/GeoParquet.jl)
 
-Adding *geospatial data* to Parquet. Follows the [GeoParquet](https://github.com/opengeospatial/geoparquet) `v1.0` spec.
+Adding *geospatial data* to Parquet. Writes [GeoParquet](https://github.com/opengeospatial/geoparquet) `v1.0` files and reads `v0.1` to `v2.0`. Reading `v2.0` files, or Parquet files with GEOMETRY or GEOGRAPHY columns but without GeoParquet metadata, requires `import QuackIO`.
 
 ## Usage
 

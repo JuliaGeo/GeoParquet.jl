@@ -11,6 +11,11 @@ using WellKnownGeometry
 
 # Download standard test files
 for (fn, url) in (
+    ("example_2.0.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v2.0.0-rc.1/examples/example.parquet"),
+    ("data-point-encoding_wkb.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v2.0.0-rc.1/test_data/data-point-encoding_wkb.parquet"),
+    ("crs-srid.parquet", "https://github.com/apache/parquet-testing/raw/3acde70509f990c4ddfe34bf3ab05890657e766c/data/geospatial/crs-srid.parquet"),
+    ("crs-projjson.parquet", "https://github.com/apache/parquet-testing/raw/3acde70509f990c4ddfe34bf3ab05890657e766c/data/geospatial/crs-projjson.parquet"),
+    ("crs-geography.parquet", "https://github.com/apache/parquet-testing/raw/3acde70509f990c4ddfe34bf3ab05890657e766c/data/geospatial/crs-geography.parquet"),
     ("example_1.1.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v1.1.0/examples/example.parquet"),
     ("example_1.0.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v1.0.0/examples/example.parquet"),
     ("example_0.4.0.parquet", "https://github.com/opengeospatial/geoparquet/raw/refs/tags/v0.4.0/examples/example.parquet"),
@@ -86,6 +91,9 @@ end
         end
         @testset "1.1.0" begin
             @test_throws "import QuackIO" GeoParquet.read("data/example_1.1.0.parquet")
+        end
+        @testset "2.0.0" begin
+            @test_throws "import QuackIO" GeoParquet.read("data/example_2.0.0.parquet")
         end
     end
 
@@ -164,6 +172,15 @@ end
         @test DataAPI.colmetadata(dfn)[:geometry]["description"] == "A point geometry"
     end
 
+    @testset "GeoInterface metadata" begin
+        # The file stores the table's GEOINTERFACE keys, but `geo` gets no crs
+        df = GeoParquet.read(GeoParquet.Parquet2Driver(), "data/example_1.0.0.parquet")
+        fn = "data/write_back.parquet"
+        GeoParquet.write(fn, df)
+        # GI.crs only comes from `geo`
+        @test isnothing(GI.crs(GeoParquet.read(GeoParquet.Parquet2Driver(), fn)))
+    end
+
     @testset "GeoArrow test files" begin
         # Parquet2 can't read GeoArrow native encodings (`_native`) or Parquet's GEOMETRY logical type (no suffix)
         geoarrow_files = filter(f -> endswith(f, "_geo.parquet"), readdir(GEOARROW_DIR, join=true))
@@ -204,19 +221,53 @@ end
         df = GeoParquet.read("data/example_1.1.0.parquet")
         @test nrow(df) === 5
         @test df.geometry[1] isa GFT.WellKnownBinary
+
+        # GeoInterface metadata is set from the `geo` metadata
+        @test GI.crs(df) isa GFT.ProjJSON
+        fn = "data/quackio_geom.parquet"
+        GeoParquet.write(fn, DataFrame(geom=[GI.Point(1.0, 2.0)]); geometrycolumn=:geom)
+        @test GI.geometrycolumns(GeoParquet.read(fn)) == (:geom,)
+
+        # GeoParquet 2.0
+        df = GeoParquet.read("data/example_2.0.0.parquet")
+        @test nrow(df) === 5
+        @test df.geometry[1] isa GFT.WellKnownBinary
+        @test GI.crs(df) isa GFT.ProjJSON
+
+        # Null geometries are missing
+        df = GeoParquet.read("data/data-point-encoding_wkb.parquet")
+        @test count(ismissing, df.geometry) == 1
+
+        # Without `geo` metadata, geometry columns and crs come from the Parquet geometry types
+        df = GeoParquet.read("data/crs-geography.parquet")
+        @test GI.geometrycolumns(df) == (:geography,)
+        @test df.geography[1] isa GFT.WellKnownBinary
+        # No crs means OGC:CRS84
+        @test GI.crs(df) == GFT.ProjJSON(GeoParquet.projjson)
+        @test GI.crs(GeoParquet.read("data/crs-srid.parquet")) == GFT.EPSG(5070)
+        @test GI.crs(GeoParquet.read("data/crs-projjson.parquet")).val["id"]["code"] == 5070
+        @test GI.crs(GeoParquet.read(joinpath(GEOARROW_DIR, "example-crs_vermont-utm.parquet"))).val["name"] == "WGS 84 / UTM zone 18N"
+        @test GI.crs(GeoParquet.read(joinpath(GEOARROW_DIR, "example-crs_vermont-crs84-wkt2.parquet"))) isa GFT.WellKnownText2
+        # Other crs forms of the Parquet geometry types
+        parse_crs = Base.get_extension(GeoParquet, :QuackIOExt).parse_crs
+        @test isnothing(parse_crs("srid:0", nothing, nothing))  # unknown
+        @test parse_crs("EPSG:28992", nothing, nothing) == GFT.EPSG(28992)
+        @test parse_crs("OGC:CRS84", nothing, nothing) == GFT.ProjJSON(GeoParquet.projjson)
+        @test isnothing(@test_logs (:warn, r"Unsupported crs") parse_crs("ESRI:102001", nothing, nothing))
     end
 
     @testset "GeoArrow test files QuackIO" begin
         geoarrow_files = filter(f -> endswith(f, ".parquet"), readdir(GEOARROW_DIR, join=true))
         @testset "Parse $(basename(fn))" for fn in geoarrow_files
-            if endswith(fn, "_geo.parquet")
+            if endswith(fn, "_native.parquet")
+                # GeoArrow native encodings are returned as raw data
+                df = @test_logs (:warn, r"Unsupported geometry encoding") match_mode=:any GeoParquet.read(GeoParquet.QuackIODriver(), fn)
+                @test_broken df.geometry[1] isa GFT.WellKnownBinary
+            else
+                # GeoParquet 1.x and Parquet's GEOMETRY and GEOGRAPHY types
                 df = GeoParquet.read(GeoParquet.QuackIODriver(), fn)
                 @test df.geometry[1] isa GFT.WellKnownBinary
                 @test GI.testgeometry(df.geometry[1])
-            else
-                # GeoArrow native encodings and Parquet's GEOMETRY logical type are returned as raw data
-                df = @test_logs (:warn, r"Unsupported geometry encoding|GeoParquet metadata not found") match_mode=:any GeoParquet.read(GeoParquet.QuackIODriver(), fn)
-                @test_broken df.geometry[1] isa GFT.WellKnownBinary
             end
         end
     end
