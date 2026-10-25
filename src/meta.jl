@@ -37,6 +37,16 @@ const wkt2 = GFT.WellKnownText2{GFT.CRS}(GFT.CRS(), """GEOGCRS["WGS 84",ENSEMBLE
 
 abstract type MetaColumn end
 
+Base.@kwdef struct MetaColumnv2_0 <: MetaColumn
+    encoding::String = "WKB"  # required, only WKB
+    geometry_types::Vector{String} = ["Point"]  # required, can be (GeometryCollection|(Multi)?(Point|LineString|Polygon))( Z)?
+    crs::Union{Nothing,GFT.ProjJSON} = GFT.ProjJSON(projjson)
+    orientation::Union{Nothing,String} = "counterclockwise"
+    edges::Union{Nothing,String} = "planar"  # or "spherical", "vincenty", "thomas", "andoyer", "karney"
+    bbox::Union{Nothing,Vector{Float64}} = [-180.0, -90.0, 180.0, 90.0]  # minx, miny, maxx, maxy
+    epoch::Union{Nothing,Float64} = nothing
+end
+
 Base.@kwdef struct MetaColumnv1_1 <: MetaColumn
     encoding::String = "WKB"  # required, can be WKB|point|linestring|polygon|multipoint|multilinestring|multipolygon
     geometry_types::Vector{String} = ["Point"]  # required, can be (GeometryCollection|(Multi)?(Point|LineString|Polygon))( Z)?
@@ -108,8 +118,9 @@ versionstring(::Type{MetaColumnv0_3}) = "0.3.0"
 versionstring(::Type{MetaColumnv0_4}) = "0.4.0"
 versionstring(::Type{MetaColumnv1_0}) = "1.0.0"
 versionstring(::Type{MetaColumnv1_1}) = "1.1.0"
+versionstring(::Type{MetaColumnv2_0}) = "2.0.0"
 
-const metaroots = Dict(versionstring(T) => MetaRoot{T} for T in (MetaColumnv0_1, MetaColumnv0_2, MetaColumnv0_3, MetaColumnv0_4, MetaColumnv1_0, MetaColumnv1_1))
+const metaroots = Dict(versionstring(T) => MetaRoot{T} for T in (MetaColumnv0_1, MetaColumnv0_2, MetaColumnv0_3, MetaColumnv0_4, MetaColumnv1_0, MetaColumnv1_1, MetaColumnv2_0))
 
 # Handle cases like `1.0.0-beta.1`, default to 1.0.0
 JSON.@choosetype MetaRoot x -> begin
