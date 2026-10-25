@@ -31,6 +31,6 @@ julia> df = GP.read(fn)
 Writing requires Table like input with geometry columns that are `WellKnownBinary` from [GeoFormatTypes.jl](https://github.com/JuliaGeo/GeoFormatTypes.jl/), or geometries that support [GeoInterface.jl](https://github.com/JuliaGeo/GeoInterface.jl/).
 
 ```julia
-julia> GeoParquet.write("test.parquet", df, (:geometry,))
+julia> GeoParquet.write("test.parquet", df; geometrycolumn=:geometry)
 test.parquet
 ```
