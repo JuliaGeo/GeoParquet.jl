@@ -1,6 +1,6 @@
 name = "GeoParquet"
 uuid = "e99870d8-ce00-4fdd-aeee-e09192881159"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Maarten Pronk <git@evetion.nl> and contributors."]
 
 [deps]
