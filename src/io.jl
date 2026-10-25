@@ -88,6 +88,10 @@ function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.Abstract
         end
     end
     df = DataFrame(ds; copycols=false)
+    # GeoInterface metadata only comes from the `geo` metadata, not from the file's key-value metadata
+    for key in collect(metadatakeys(df))
+        startswith(key, "GEOINTERFACE:") && deletemetadata!(df, key)
+    end
     if !is_valid(ds)
         @warn "GeoParquet metadata not found in $fn, returning DataFrame without geometry parsing"
         return df
@@ -111,13 +115,15 @@ function read(::Driver, fn::Union{AbstractString,Parquet2.FilePathsBase.Abstract
             colmetadata!(df, k, vk, vv)
         end
     end
-    # set GeoInterface metadata
+    set_geointerface_metadata!(df, meta)
+end
+
+# Set the metadata that GI.geometrycolumns and GI.crs read from the `geo` metadata
+function set_geointerface_metadata!(df, meta)
     metadata!(df, "GEOINTERFACE:geometrycolumns", Tuple(Symbol.(keys(meta.columns))), style=:note)
     crs = meta.columns[meta.primary_column].crs
-    if !isnothing(crs)
-        metadata!(df, "GEOINTERFACE:crs", crs, style=:note)
-    end
-    df
+    isnothing(crs) || metadata!(df, "GEOINTERFACE:crs", crs, style=:note)
+    return df
 end
 
 # Default to QuackIODriver if available, otherwise fallback to Parquet2Driver
