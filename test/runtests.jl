@@ -164,6 +164,15 @@ end
         @test DataAPI.colmetadata(dfn)[:geometry]["description"] == "A point geometry"
     end
 
+    @testset "GeoInterface metadata" begin
+        # The file stores the table's GEOINTERFACE keys, but `geo` gets no crs
+        df = GeoParquet.read(GeoParquet.Parquet2Driver(), "data/example_1.0.0.parquet")
+        fn = "data/write_back.parquet"
+        GeoParquet.write(fn, df)
+        # GI.crs only comes from `geo`
+        @test isnothing(GI.crs(GeoParquet.read(GeoParquet.Parquet2Driver(), fn)))
+    end
+
     @testset "GeoArrow test files" begin
         # Parquet2 can't read GeoArrow native encodings (`_native`) or Parquet's GEOMETRY logical type (no suffix)
         geoarrow_files = filter(f -> endswith(f, "_geo.parquet"), readdir(GEOARROW_DIR, join=true))
@@ -204,6 +213,12 @@ end
         df = GeoParquet.read("data/example_1.1.0.parquet")
         @test nrow(df) === 5
         @test df.geometry[1] isa GFT.WellKnownBinary
+
+        # GeoInterface metadata is set from the `geo` metadata
+        @test GI.crs(df) isa GFT.ProjJSON
+        fn = "data/quackio_geom.parquet"
+        GeoParquet.write(fn, DataFrame(geom=[GI.Point(1.0, 2.0)]); geometrycolumn=:geom)
+        @test GI.geometrycolumns(GeoParquet.read(fn)) == (:geom,)
     end
 
     @testset "GeoArrow test files QuackIO" begin

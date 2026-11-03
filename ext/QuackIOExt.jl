@@ -24,7 +24,7 @@ function GeoParquet.read(::GeoParquet.QuackIODriver, fn::AbstractString; kwargs.
             @warn "Unsupported geometry encoding: $(column.encoding) for column $columnname, returning raw data"
         end
     end
-    df
+    GeoParquet.set_geointerface_metadata!(df, meta)
 end
 
 using PrecompileTools: @compile_workload
